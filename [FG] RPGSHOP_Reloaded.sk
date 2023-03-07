@@ -140,7 +140,7 @@ command rpgshop [<player>] [<text>]:
 					if {_it} isn't air:
 						set {_inv::%{_slot_id}%} to {_it}
 
-				set {_pricelore::*} to "&0&m-&0&m-&0&m-&0%arg-1%" and "{@price_aliases}"
+				set {_pricelore::*} to "&0&m-&0&m-&0&m-&0%arg-2%" and "{@price_aliases}"
 				set {_reward} to yaml value "items.%loop-value%.reward" from {_shopid}
 				set {_price::level} to yaml value "items.%loop-value%.price.level" from {_shopid}
 				if {_price::level} > 0:
