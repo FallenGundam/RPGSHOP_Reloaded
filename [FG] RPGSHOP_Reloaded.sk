@@ -132,7 +132,8 @@ command rpgshop [<player>] [<text>]:
 			set {_shopname} to yaml value "ShopName" from {_shopid}
 			
 			open chest inventory with 6 rows named "{@GUI_Title} %{_shopname}%" to {_p}
-			loop yaml nodes with key "items" from {_shopid}:
+			set {_rsitems::*} to yaml nodes with key "items" from {_shopid}
+			loop {_rsitems::*}:
 
 				loop 36 times:
 					set {_slot_id} to (loop-value-2)-1 
@@ -169,6 +170,7 @@ command rpgshop [<player>] [<text>]:
 					clear {_stats}
 					set {_itemtemp} to loop-value-2
 					loop {_inv::*}:		
+						set {_slotid} to loop-index-3
 						set {_invitem} to loop-value-3
 						if type of {_itemtemp} = type of {_invitem}:
 							if name of {_itemtemp} is set:
@@ -178,8 +180,8 @@ command rpgshop [<player>] [<text>]:
 								if "%uncolored lore of {_itemtemp}%" != "%uncolored lore of {_invitem}%":
 									continue
 							if item amount of {_invitem} >= item amount of {_itemtemp}:
-								set {_stats} to "{@condition_true}&0%loop-index-3%"
-								delete {_inv::%loop-index-3%}
+								set {_stats} to "{@condition_true}&0%{_slotid}%"
+								delete {_inv::%{_slotid}%}
 								exit 1 loops
 					if {_stats} isn't set:
 						set {_stats} to "{@condition_false}"
@@ -248,7 +250,7 @@ on inventory click:
 					give {_reward} to player
 					close player's inventory
 					play sound "entity.experience_orb.pickup" with volume 1 with pitch 0.5 to the player
-					execute console command "rpgshop %player% %{_code}%"
+					execute player command "rpgshop %player% %{_code}%"
 				else:
 					send "{@system_prefix} {@price_msg_deny}"
 
