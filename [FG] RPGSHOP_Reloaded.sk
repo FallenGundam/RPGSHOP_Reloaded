@@ -248,7 +248,7 @@ on inventory click:
 					give {_reward} to player
 					close player's inventory
 					play sound "entity.experience_orb.pickup" with volume 1 with pitch 0.5 to the player
-					execute player command "rpgshop %{_code}%"
+					execute console command "rpgshop %player% %{_code}%"
 				else:
 					send "{@system_prefix} {@price_msg_deny}"
 
