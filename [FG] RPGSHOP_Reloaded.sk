@@ -436,6 +436,7 @@ on rightclick:
 			save yaml {rs::editing::%player%}
 			wait 0.5 second
 			rs_edit_shop(player,{rs::editing::%player%})
+			delete {rs::itemslot::%player%} 
 		else:
 			send "{@system_prefix} &c請手持物品"
 
