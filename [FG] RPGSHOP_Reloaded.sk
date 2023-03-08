@@ -41,6 +41,9 @@ options:
 
 	price_msg_deny: &c購買條件不足
 
+	reward_msg: &a成功購買了
+	reward_sound: entity.experience_orb.pickup
+	reward_sound_pitch: 0.5
 
 
 #PlayerPoints API
@@ -248,8 +251,12 @@ on inventory click:
 							send "{@system_prefix} {@price_msg_item} %{_templist::1}% &fx %{_itemamount}%"
 					set {_reward} to yaml value "items.%index of event-slot%.reward" from "%{_code}%.yaml"
 					give {_reward} to player
+					if name of {_reward} is set:
+						send "{@system_prefix} {@reward_msg} %name of {_reward}% x %item amount of {_reward}%"
+					else:
+						send "{@system_prefix} {@reward_msg} %type of {_reward}% x %item amount of {_reward}%"
 					close player's inventory
-					play sound "entity.experience_orb.pickup" with volume 1 with pitch 0.5 to the player
+					play sound "{@reward_sound}" with volume 1 with pitch {@reward_sound_pitch} to the player
 					execute player command "rpgshop %player% %{_code}%"
 				else:
 					send "{@system_prefix} {@price_msg_deny}"
