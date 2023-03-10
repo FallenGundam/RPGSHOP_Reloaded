@@ -13,7 +13,7 @@
 
 ## Server Version : 
 
-spigot or parper 1.13.2 ~ 1.19.3
+spigot or paper 1.13.2 ~ 1.19.3
 
 ## Command & Permission
     /rsa editor - 打開GUI編輯器
