@@ -1,7 +1,8 @@
 #script name: RPGSHOP_Reloaded  by Fallen_Gundam
-#version: v1.0.1
+#version: v1.0.5
 #completion date: 2023/3/7
-
+#         v1.0.1 2023/3/8
+#		  v1.0.5 2023/3/13
 #Discord: FallenGundam#8864
 
 # required plugins:
@@ -39,12 +40,15 @@ options:
 	price_msg_points: &6花費了&9 [var] Points
 	price_msg_level: &6花費了&a [var] 等級
 
-	price_msg_deny: &c購買條件不足
-
 	reward_msg: &a成功購買了
 	reward_sound: entity.experience_orb.pickup
 	reward_sound_pitch: 0.5
 
+	buy_deny_msg: &c購買條件不足
+	buy_deny_sound: entity.blaze.death
+	buy_deny_sound_pitch: 1.25
+
+	GUI_Title2: &1商品需求物品展示
 
 #PlayerPoints API
 
@@ -120,11 +124,6 @@ on skript unload:
 
 
 
-
-
-
-
-
 command rpgshop [<player>] [<text>]:
 	permission: rsa.admin
 	trigger:
@@ -190,79 +189,222 @@ command rpgshop [<player>] [<text>]:
 						set {_stats} to "{@condition_false}"
 
 					if name of {_itemtemp} is set:
-						add "%name of {_itemtemp}%&f &fx&f %item amount of {_itemtemp}% %{_stats}%" to {_pricelore::*}
+						add "%name of {_itemtemp}% &fx&f %item amount of {_itemtemp}% %{_stats}%" to {_pricelore::*}
 					else:
-						add "%type of {_itemtemp}%&f &fx&f %item amount of {_itemtemp}% %{_stats}%" to {_pricelore::*}
+						add "%type of {_itemtemp}% &fx&f %item amount of {_itemtemp}% %{_stats}%" to {_pricelore::*}
 					
 				set {_slot} to loop-value
 				set {_slot} to {_slot} parsed as number
 				set slot {_slot} of {_p}'s current inventory to {_reward} with lore lore of {_reward} and {_pricelore::*}
-	
 
 on inventory click:
+	if name of event-inventory = "{@GUI_Title2}":
+		cancel event
+		if index of event-slot = 17:
+			close player's inventory
+			make console execute command "rpgshop %player% %uncolored line 1 of lore of event-slot%"
 	if name of event-inventory contains "{@GUI_Title}":
 		cancel event
 		if type of event-inventory is chest inventory:
 			if event-slot isn't air:
-				set {_lore::*} to lore of event-slot
-				if "%{_lore::*}%" doesn't contain "{@condition_false}":
-					loop {_lore::*}:
+
+				if click action is right mouse button:
+					loop lore of event-slot:
 						if loop-value contains "&0&m-&0&m-&0&m-":
 							set {_code} to loop-value
 							replace all "&0&m-&0&m-&0&m-&0" with "" in {_code}
-							set {_found} to true
-							continue
-						if {_found} isn't set:
-							add loop-value to {_newlore::*}
+							stop loop
+					set {_it::*} to yaml list "items.%index of event-slot%.price.itemlist" from "%{_code}%.yaml"
+					if size of {_it::*} > 0:
+					
+						close player's inventory
+						open chest inventory with 2 rows named "{@GUI_Title2}" to player
+						loop {_it::*}:
+							add 1 to {_slot}
+							set slot {_slot}-1 of player's current inventory to loop-value
+						set slot 17 of player's current inventory to barrier named "&c返回" with lore "&0%{_code}%"
+
+				else if click action is left mouse button:
+					if "%lore of event-slot%" doesn't contain "{@condition_false}":
+						loop lore of event-slot:
+							if loop-value contains "&0&m-&0&m-&0&m-":
+								set {_code} to loop-value
+								replace all "&0&m-&0&m-&0&m-&0" with "" in {_code}
+								set {_found} to true
+								continue
+							if {_found} is true:
+								if loop-value != "{@price_aliases}":
+									add loop-value to {_price::*}
+						clear {_found}
 						
-						if {_found} is true:
-							if loop-value != "{@price_aliases}":
-								add loop-value to {_price::*}
+						loop {_price::*}:
+							if loop-value contains "{@money_aliases}":
+								set {_n} to StringGetNumber(loop-value)
+								remove {_n} from player's money
+								set {_msg} to "{@price_msg_money}"
+								replace all "[var]" with "%{_n}%" in {_msg}
+								send "{@system_prefix} %{_msg}%"
+							else if loop-value contains "{@level_aliases}":
+								set {_n} to StringGetNumber(loop-value)
+								remove {_n} from player's level
+								set {_msg} to "{@price_msg_level}"
+								replace all "[var]" with "%{_n}%" in {_msg}
+								send "{@system_prefix} %{_msg}%"
+							else if loop-value contains "{@points_aliases}":
+								set {_n} to StringGetNumber(loop-value)
+								PlayerPoints_take(player,{_n})
+								set {_msg} to "{@price_msg_points}"
+								replace all "[var]" with "%{_n}%" in {_msg}
+								send "{@system_prefix} %{_msg}%"
+							else:
+								set {_templist::*} to loop-value split at " &fx&f "
+								replace all " " with "" in {_templist::2}
+								set {_word} to uncolored "{@condition_true}"
+								set {_templist2::*} to uncolored {_templist::2} split at {_word} 
+								set {_itemamount} to {_templist2::1} parsed as number
+								set {_itemslot} to {_templist2::2} parsed as number
 
-					loop {_price::*}:
+								remove {_itemamount} from item amount of slot {_itemslot} of player's inventory
+								send "{@system_prefix} {@price_msg_item} %{_templist::1}% &fx %{_itemamount}%"
 
-						if loop-value contains "{@money_aliases}":
-							set {_n} to StringGetNumber(loop-value)
-							remove {_n} from player's money
-							set {_msg} to "{@price_msg_money}"
-							replace all "[var]" with "%{_n}%" in {_msg}
-							send "{@system_prefix} %{_msg}%"
-						else if loop-value contains "{@level_aliases}":
-							set {_n} to StringGetNumber(loop-value)
-							remove {_n} from player's level
-							set {_msg} to "{@price_msg_level}"
-							replace all "[var]" with "%{_n}%" in {_msg}
-							send "{@system_prefix} %{_msg}%"
-						else if loop-value contains "{@points_aliases}":
-							set {_n} to StringGetNumber(loop-value)
-							PlayerPoints_take(player,{_n})
-							set {_msg} to "{@price_msg_points}"
-							replace all "[var]" with "%{_n}%" in {_msg}
-							send "{@system_prefix} %{_msg}%"
+						set {_reward} to yaml value "items.%index of event-slot%.reward" from "%{_code}%.yaml"
+						if name of {_reward} is set:
+							send "{@system_prefix} {@reward_msg} %name of {_reward}% x %item amount of {_reward}%"
 						else:
-							set {_templist::*} to loop-value split at " &fx&f "
-							replace all " " with "" in {_templist::2}
-							set {_word} to uncolored "{@condition_true}"
-							set {_templist2::*} to uncolored {_templist::2} split at {_word} 
-							set {_itemamount} to {_templist2::1} parsed as number
-							set {_itemslot} to {_templist2::2} parsed as number
+							send "{@system_prefix} {@reward_msg} %type of {_reward}% x %item amount of {_reward}%"
+						play sound "{@reward_sound}" with volume 1 with pitch {@reward_sound_pitch} to the player
+						if player has enough space for 1 of stone:
+							give {_reward} to player
+						else:
+							drop {_reward} at location of player
+							send "{@system_prefix} &c背包已滿，物品已掉落"
 
-							remove {_itemamount} from item amount of slot {_itemslot} of player's inventory
-							send "{@system_prefix} {@price_msg_item} %{_templist::1}% &fx %{_itemamount}%"
-					set {_reward} to yaml value "items.%index of event-slot%.reward" from "%{_code}%.yaml"
-					give {_reward} to player
-					if name of {_reward} is set:
-						send "{@system_prefix} {@reward_msg} %name of {_reward}% x %item amount of {_reward}%"
-					else:
-						send "{@system_prefix} {@reward_msg} %type of {_reward}% x %item amount of {_reward}%"
-					close player's inventory
-					play sound "{@reward_sound}" with volume 1 with pitch {@reward_sound_pitch} to the player
-					execute player command "rpgshop %player% %{_code}%"
+						loop {_price::*}:
+							if loop-value contains "{@level_aliases}" or "{@money_aliases}" or "{@points_aliases}":
+								add loop-value to {_newprice::*}
+							else:
+								set {_test::*} to loop-value split at " &fx&f "
+								if {_newprice::*} doesn't contain {_test::1}:
+									add {_test::1} to {_newprice::*}
+						if name of {_reward} is set:
+							add name of {_reward} to {_newprice::*}
+						else:
+							add type of {_reward} to {_newprice::*}
+						delete {_price::*} and {_reward} 
+						# 更新商城物品
+						loop 54 times:
+							set {_slotindex} to loop-value -1
+							set {_slotitem} to slot {_slotindex} of event-inventory
+							if {_slotitem} isn't air:
+								clear {_temp_lore::*}
+								clear {_line}
+								loop lore of {_slotitem}:
+									add 1 to {_line}
+									if loop-value-2 contains "{@price_aliases}":
+										set {_found} to true
+										continue
+									if {_found} is true:
+										set {_temp_lore::%{_line}%} to loop-value-2
+								# 偵測交易後改動過的資料
+								loop {_newprice::*}:
+									if loop-value-2 contains "{@level_aliases}":
+										set {_temp} to yaml value "items.%{_slotindex}%.price.level" from "%{_code}%.yaml"
+										if {_temp} > 0:
+											loop {_temp_lore::*}:
+												if loop-value-3 contains "{@level_aliases}":
+													set {_loreline} to loop-index-2 parsed as number
+													if player's level >= {_temp}:
+														set {_stats} to "{@condition_true}"
+													else:
+														set {_stats} to "{@condition_false}"
+													set line {_loreline} of lore of slot {_slotindex} of event-inventory to "{@level_aliases}&f x %{_temp}% %{_stats}%"
+													delete {_temp_lore::%loop-index-2%}
+													exit 1 loops
+									
+									if loop-value-2 contains "{@money_aliases}":
+										set {_temp} to yaml value "items.%{_slotindex}%.price.money" from "%{_code}%.yaml"
+										if {_temp} > 0:
+											loop {_temp_lore::*}:
+												if loop-value-3 contains "{@money_aliases}":
+													set {_loreline} to loop-index-2 parsed as number
+													if player's money >= {_temp}:
+														set {_stats} to "{@condition_true}"
+													else:
+														set {_stats} to "{@condition_false}"
+													set line {_loreline} of lore of slot {_slotindex} of event-inventory to "{@money_aliases}&f x %{_temp}%$ %{_stats}%"
+													delete {_temp_lore::%loop-index-2%}
+													exit 1 loops
+
+									if loop-value-2 contains "{@points_aliases}":
+										set {_temp} to yaml value "items.%{_slotindex}%.price.points" from "%{_code}%.yaml"
+										if {_temp} > 0:
+											loop {_temp_lore::*}:
+												if loop-value-3 contains "{@points_aliases}":
+													set {_loreline} to loop-index-2 parsed as number
+													if PlayerPoints_look( player ) >= {_temp}:
+														set {_stats} to "{@condition_true}"
+													else:
+														set {_stats} to "{@condition_false}"
+													set line {_loreline} of lore of slot {_slotindex} of event-inventory to "{@points_aliases}&f x %{_temp}% %{_stats}%"
+													delete {_temp_lore::%loop-index-2%}
+													exit 1 loops
+									#> 偵測交易後改動過的物品
+									else:
+										loop {_temp_lore::*}:
+											set {_itemname::*} to loop-value-3 split at " &fx&f "
+											if {_itemname::1} = loop-value-2:
+												set {_loreline} to loop-index-2 parsed as number
+												set {_itemamount} to {_itemname::2}.substring(0,{_itemname::2}.indexOf("§")).trim()
+
+												#> 從資料庫中提取需求物品
+												if {_item_price::*} isn't set:
+													set {_item_price::*} to yaml list "items.%{_slotindex}%.price.itemlist" from "%{_code}%.yaml"
+												loop {_item_price::*}:
+													set {_itemtemp} to loop-value-4
+													if "%item amount of {_itemtemp}%" = "%{_itemamount}%": 
+														if name of {_itemtemp} is set:
+															if name of {_itemtemp} = {_itemname::1}:
+																set {_price_item} to {_itemtemp}
+																delete {_item_price::%loop-index-3%}
+																exit 1 loops
+														else:
+															if "%type of {_itemtemp}%" = {_itemname::1}:
+																set {_price_item} to {_itemtemp}
+																delete {_item_price::%loop-index-3%}
+																exit 1 loops
+												#> 重新偵測背包物品
+												if {_playersinv::*} isn't set:
+													loop 36 times:
+														set {_slottemp} to (loop-value-4)-1
+														set {_playersinv::%{_slottemp}%} to slot {_slottemp} of player's inventory
+												loop {_playersinv::*}:
+													set {_invitem} to loop-value-4
+													set {_slotid} to loop-index-3
+													if type of {_price_item} = type of {_invitem}:
+														if name of {_price_item} is set:
+															if uncolored name of {_price_item} != uncolored name of {_invitem}:
+																continue
+														if lore of {_price_item} is set:
+															if "%uncolored lore of {_price_item}%" != "%uncolored lore of {_invitem}%":
+																continue
+														if item amount of {_invitem} >= item amount of {_price_item}:
+															set {_stats} to "{@condition_true}&0%{_slotid}%"
+															delete {_playersinv::%{_slotid}%}
+															exit 1 loops
+												if {_stats} isn't set:
+													set {_stats} to "{@condition_false}"
+												if name of {_price_item} is set:
+													set line {_loreline} of lore of slot {_slotindex} of event-inventory to "%name of {_price_item}% &fx&f %item amount of {_price_item}% %{_stats}%" 
+												else:
+													set line {_loreline} of lore of slot {_slotindex} of event-inventory to "%type of {_price_item}% &fx&f %item amount of {_price_item}% %{_stats}%" 
+												clear {_stats}
+										clear {_playersinv::*}
+										clear {_item_price::*}
+
+
 				else:
-					send "{@system_prefix} {@price_msg_deny}"
-
-
-
+					send "{@system_prefix} {@buy_deny_msg}"
+					play sound "{@buy_deny_sound}" with volume 1 with pitch {@buy_deny_sound_pitch} to the player
 
 #editor
 
@@ -361,18 +503,28 @@ on inventory click:
 				execute console command "tellraw %player% %{_msg}%"
 
 	else if name of event-inventory contains "&1RPGSHOP_Editing":
-		if event-slot is air:
-			set {rs::itemslot::%player%} to index of event-slot
-			close player's inventory
-			send "{@system_prefix} &a請手持物品點擊右鍵"
-		else if event-slot isn't air:
-			if click action isn't right mouse button:
-				rs_edit_item(player,index of event-slot)
+
+		if type of event-inventory is chest inventory: 
+			cancel event
+			if event-slot is air:
+				set {_cousor} to event.getCursor()
+				if {_cousor} isn't air:
+					set {_slot} to index of event-slot
+					set yaml value "items.%{_slot}%.reward" from {rs::editing::%player%} to {_cousor}
+					set yaml value "items.%{_slot}%.price.money" from {rs::editing::%player%} to 0
+					set yaml value "items.%{_slot}%.price.points" from {rs::editing::%player%} to 0
+					set yaml value "items.%{_slot}%.price.level" from {rs::editing::%player%} to 0
+					send "{@system_prefix} &a成功新增物品 %{_cousor}%"
+					event.setCursor(air)
+					rs_edit_shop(player,{rs::editing::%player%})
 			else:
-				delete yaml nodes with key "items.%index of event-slot%" from {rs::editing::%player%}
-				save yaml {rs::editing::%player%} 
-				close player's inventory
-				rs_edit_shop(player,{rs::editing::%player%})
+				if click action isn't right mouse button:
+					rs_edit_item(player,index of event-slot)
+				else:
+					delete yaml nodes with key "items.%index of event-slot%" from {rs::editing::%player%}
+					save yaml {rs::editing::%player%} 
+					close player's inventory
+					rs_edit_shop(player,{rs::editing::%player%})
 	else if name of event-inventory contains "&1RPGSHOP_price":
 		if type of event-inventory is chest inventory:
 			set {_slot} to uncolored name of event-inventory
@@ -431,21 +583,6 @@ on inventory click:
 					close player's inventory
 					rs_edit_shop(player,{rs::editing::%player%})
 
-on rightclick:
-	if {rs::itemslot::%player%} is set:
-		cancel event
-		if player's tool isn't air:
-			set yaml value "items.%{rs::itemslot::%player%}%.reward" from {rs::editing::%player%} to player's tool
-			set yaml value "items.%{rs::itemslot::%player%}%.price.money" from {rs::editing::%player%} to 0
-			set yaml value "items.%{rs::itemslot::%player%}%.price.points" from {rs::editing::%player%} to 0
-			set yaml value "items.%{rs::itemslot::%player%}%.price.level" from {rs::editing::%player%} to 0
-			send "{@system_prefix} &a成功新增物品 %player's tool%"
-			save yaml {rs::editing::%player%}
-			wait 0.5 second
-			rs_edit_shop(player,{rs::editing::%player%})
-			delete {rs::itemslot::%player%} 
-		else:
-			send "{@system_prefix} &c請手持物品"
 
 command rpgshopadmin [<text>] [<text>] [<text>]:
 	aliases: rsa
@@ -547,3 +684,4 @@ command rsinput [<text>]:
 
 		else:
 			send "{@system_prefix} &c你沒有待輸入的動作"
+
