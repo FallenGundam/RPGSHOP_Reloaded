@@ -2,7 +2,7 @@
 #version: v1.0.5
 #completion date: 2023/3/7
 #         v1.0.1 2023/3/8
-#		  v1.0.5 2023/3/13
+#		  v1.0.5 2023/3/14
 #Discord: FallenGundam#8864
 
 # required plugins:
@@ -201,7 +201,7 @@ command rpgshop [<player>] [<text>]:
 on quit:
 	if {rs::invname::%player%} is set:
 		delete {rs::invtemp::%player%::*} and {rs::invname::%player%}
-		
+
 on inventory close:
 	if name of event-inventory = "{@GUI_Title2}":
 		wait 2 tick
@@ -244,6 +244,7 @@ on inventory click:
 						set slot 17 of player's current inventory to barrier named "&c返回" with lore "&0%{_code}%"
 					else:
 						send "{@system_prefix} {@GUI2_open_deny_msg}" to player
+
 				else if click action is left mouse button:
 					if "%lore of event-slot%" doesn't contain "{@condition_false}":
 						loop lore of event-slot:
@@ -422,11 +423,11 @@ on inventory click:
 										clear {_item_price::*}
 
 
-				else:
-					send "{@system_prefix} {@buy_deny_msg}"
-					play sound "{@buy_deny_sound}" with volume 1 with pitch {@buy_deny_sound_pitch} to the player
+					else:
+						send "{@system_prefix} {@buy_deny_msg}"
+						play sound "{@buy_deny_sound}" with volume 1 with pitch {@buy_deny_sound_pitch} to the player
 
-#editor
+	#editor
 
 on load:
 	loop rs_getAllshop():
@@ -557,7 +558,9 @@ on inventory click:
 				if "%lore of event-slot%" contains "&c---點擊右鍵刪除此物品---":
 					cancel event
 					if click action is middle mouse button:
-						give event-slot to player
+						set {_temp::*} to yaml list "items.%{_slot}%.price.itemlist" from {rs::editing::%player%}
+						set {_index} to index of event-slot + 1
+						give {_temp::%{_index}%} to player
 					else if click action is right mouse button:
 						set {_temp::*} to yaml list "items.%{_slot}%.price.itemlist" from {rs::editing::%player%}
 						set {_code} to index of event-slot + 1
