@@ -26,7 +26,7 @@ options:
 
 	#Player GUI
 	GUI_Title: &0&lRPGSHOP
-	price_aliases: &7-----購買需求-----
+	price_aliases: &7-----購買需求----- &8(右鍵查看)
 	money_aliases: &e金錢
 	level_aliases: &a等級
 	points_aliases: &9Points
@@ -49,6 +49,7 @@ options:
 	buy_deny_sound_pitch: 1.25
 
 	GUI_Title2: &1商品需求物品展示
+	GUI2_open_deny_msg: &c該商品沒有需求物品
 
 #PlayerPoints API
 
@@ -196,14 +197,28 @@ command rpgshop [<player>] [<text>]:
 				set {_slot} to loop-value
 				set {_slot} to {_slot} parsed as number
 				set slot {_slot} of {_p}'s current inventory to {_reward} with lore lore of {_reward} and {_pricelore::*}
+#> 清除緩存
+on quit:
+	if {rs::invname::%player%} is set:
+		delete {rs::invtemp::%player%::*} and {rs::invname::%player%}
+		
+on inventory close:
+	if name of event-inventory = "{@GUI_Title2}":
+		wait 2 tick
+		if {rs::invname::%player%} is set:
+			delete {rs::invtemp::%player%::*} and {rs::invname::%player%}
 
 on inventory click:
 	if name of event-inventory = "{@GUI_Title2}":
 		cancel event
 		if index of event-slot = 17:
 			close player's inventory
-			make console execute command "rpgshop %player% %uncolored line 1 of lore of event-slot%"
-	if name of event-inventory contains "{@GUI_Title}":
+			open chest inventory with 6 rows named {rs::invname::%player%} to player
+			loop {rs::invtemp::%player%::*}:
+				set {_slot} to loop-index parsed as number
+				set slot {_slot} of player's current inventory to loop-value
+			delete {rs::invtemp::%player%::*} and {rs::invname::%player%}
+	else if name of event-inventory contains "{@GUI_Title}":
 		cancel event
 		if type of event-inventory is chest inventory:
 			if event-slot isn't air:
@@ -216,14 +231,19 @@ on inventory click:
 							stop loop
 					set {_it::*} to yaml list "items.%index of event-slot%.price.itemlist" from "%{_code}%.yaml"
 					if size of {_it::*} > 0:
-					
+						loop 53 times:
+							set {_slot} to (loop-value) -1
+							set {rs::invtemp::%player%::%{_slot}%} to slot {_slot} of event-inventory
+						set {rs::invname::%player%} to name of event-inventory
 						close player's inventory
 						open chest inventory with 2 rows named "{@GUI_Title2}" to player
+						set {_slot} to 0
 						loop {_it::*}:
 							add 1 to {_slot}
 							set slot {_slot}-1 of player's current inventory to loop-value
 						set slot 17 of player's current inventory to barrier named "&c返回" with lore "&0%{_code}%"
-
+					else:
+						send "{@system_prefix} {@GUI2_open_deny_msg}" to player
 				else if click action is left mouse button:
 					if "%lore of event-slot%" doesn't contain "{@condition_false}":
 						loop lore of event-slot:
@@ -449,7 +469,7 @@ function rs_edit_shop(p:player,shopname:text):
 		set {_reward} to yaml value "items.%loop-value%.reward" from {_shopname}
 		set {_slot} to loop-value
 		set {_slot} to {_slot} parsed as integer
-		set slot {_slot} of {_p}'s current inventory to {_reward} with lore lore of {_reward} and "" and "&7-----點擊編輯需求-----" and "&c---點擊右鍵刪除此物品---"
+		set slot {_slot} of {_p}'s current inventory to {_reward} with lore lore of {_reward} and "" and "&b---點擊左鍵編輯需求---" and "&c---點擊右鍵刪除此物品---" and "&e---點擊滑鼠中鍵複製出物品---"
 
 
 function rs_edit_item(p:player,slot:object):
@@ -458,7 +478,7 @@ function rs_edit_item(p:player,slot:object):
 	set {_list::*} to yaml list "items.%{_slot}%.price.itemlist" from {rs::editing::%{_p}%}
 	loop {_list::*}:
 		set {_item} to loop-value
-		set slot {_s} of {_p}'s current inventory to loop-value with lore lore of loop-value and "&c---點擊右鍵刪除此物品---"
+		set slot {_s} of {_p}'s current inventory to loop-value with lore lore of loop-value and "&c---點擊右鍵刪除此物品---" and "&e---點擊滑鼠中鍵複製出物品---"
 		add 1 to {_s}
 	set {_lv} to yaml value "items.%{_slot}%.price.level" from {rs::editing::%{_p}%}
 	set {_money} to yaml value "items.%{_slot}%.price.money" from {rs::editing::%{_p}%}
@@ -503,7 +523,6 @@ on inventory click:
 				execute console command "tellraw %player% %{_msg}%"
 
 	else if name of event-inventory contains "&1RPGSHOP_Editing":
-
 		if type of event-inventory is chest inventory: 
 			cancel event
 			if event-slot is air:
@@ -516,23 +535,30 @@ on inventory click:
 					set yaml value "items.%{_slot}%.price.level" from {rs::editing::%player%} to 0
 					send "{@system_prefix} &a成功新增物品 %{_cousor}%"
 					event.setCursor(air)
+					wait a tick
 					rs_edit_shop(player,{rs::editing::%player%})
 			else:
-				if click action isn't right mouse button:
+				if click action is left mouse button:
 					rs_edit_item(player,index of event-slot)
-				else:
+				else if click action is middle mouse button:
+					set {_it} to yaml value "items.%index of event-slot%.reward" from {rs::editing::%player%}
+					give {_it} to player
+				else if click action is right mouse button:
 					delete yaml nodes with key "items.%index of event-slot%" from {rs::editing::%player%}
 					save yaml {rs::editing::%player%} 
 					close player's inventory
 					rs_edit_shop(player,{rs::editing::%player%})
+
 	else if name of event-inventory contains "&1RPGSHOP_price":
 		if type of event-inventory is chest inventory:
 			set {_slot} to uncolored name of event-inventory
 			replace all "RPGSHOP_price: " with "" in {_slot}
 			if index of event-slot < 9:
-				if last element of lore of event-slot is "&c---點擊右鍵刪除此物品---":
+				if "%lore of event-slot%" contains "&c---點擊右鍵刪除此物品---":
 					cancel event
-					if click action is right mouse button:
+					if click action is middle mouse button:
+						give event-slot to player
+					else if click action is right mouse button:
 						set {_temp::*} to yaml list "items.%{_slot}%.price.itemlist" from {rs::editing::%player%}
 						set {_code} to index of event-slot + 1
 						delete {_temp::%{_code}%}
@@ -542,6 +568,9 @@ on inventory click:
 						else:
 							set yaml list "items.%{_slot}%.price.itemlist" from {rs::editing::%player%} to {_temp::*}
 						save yaml {rs::editing::%player%}
+						close player's inventory
+						wait 2 tick
+						rs_edit_item(player,{_slot})
 			else:
 				cancel event
 
@@ -566,18 +595,27 @@ on inventory click:
 
 				if index of event-slot is 16:
 					if click action is left mouse button:
-						loop 9 times:
-							set {_item} to slot (loop-value)-1 of event-inventory
-							if {_item} isn't air:
-								if last element of lore of {_item} is "&c---點擊右鍵刪除此物品---":
-									delete line (size of lore of {_item}) of lore of {_item}
-								add {_item} to {_list::*}
-						set yaml list "items.%{_slot}%.price.itemlist" from {rs::editing::%player%} to {_list::*}
+						if yaml path "items.%{_slot}%.price.itemlist" in {rs::editing::%player%} has value:
+							set {_listtemp::*} to yaml list "items.%{_slot}%.price.itemlist" from {rs::editing::%player%}
+							set {_sizetemp} to size of {_listtemp::*}
+							loop 9 - {_sizetemp} times:
+								set {_number} to {_sizetemp} + (loop-value) -1
+								set {_item} to slot {_number} of event-inventory
+								if {_item} isn't air:
+									add {_item} to {_listtemp::*}
+						else:
+							loop 9 times:
+								set {_item} to slot (loop-value)-1 of event-inventory
+								if {_item} isn't air:
+									add {_item} to {_listtemp::*}
+						set yaml list "items.%{_slot}%.price.itemlist" from {rs::editing::%player%} to {_listtemp::*}
+
 					else if click action is right mouse button with shift:
 						delete yaml list "items.%{_slot}%.price.itemlist" from {rs::editing::%player%}
+						
 					save yaml {rs::editing::%player%} 
 					close player's inventory
-					wait 0.25 seconds
+					wait 2 tick
 					rs_edit_item(player,{_slot})
 				else if index of event-slot is 17:
 					close player's inventory
