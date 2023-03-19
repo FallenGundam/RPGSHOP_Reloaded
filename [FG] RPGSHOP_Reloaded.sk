@@ -296,10 +296,6 @@ on inventory click:
 								send "{@system_prefix} {@price_msg_item} %{_templist::1}% &fx %{_itemamount}%"
 
 						play sound "{@reward_sound}" with volume 1 with pitch {@reward_sound_pitch} to the player
-						if name of event-slot is set:
-							send "{@system_prefix} {@reward_msg} %name of event-slot% x %item amount of event-slot%"
-						else:
-							send "{@system_prefix} {@reward_msg} %type of event-slot% x %item amount of event-slot%"
 
 						set {_givereward} to true
 						if yaml path "items.%index of event-slot%.rewardcmd" in "%{_code}%.yaml" has value:
@@ -312,6 +308,11 @@ on inventory click:
 
 						if {_givereward} = true:
 							set {_reward} to yaml value "items.%index of event-slot%.reward" from "%{_code}%.yaml" 
+							if name of event-slot is set:
+								send "{@system_prefix} {@reward_msg} %name of event-slot% x %item amount of event-slot%"
+							else:
+								send "{@system_prefix} {@reward_msg} %type of event-slot% x %item amount of event-slot%"
+							
 							if player has enough space for 1 of stone:
 								give {_reward} to player
 							else:
