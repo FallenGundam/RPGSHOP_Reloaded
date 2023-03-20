@@ -587,6 +587,7 @@ on inventory click:
 					set yaml value "items.%{_slot}%.price.points" from {rs::editing::%player%} to 0
 					set yaml value "items.%{_slot}%.price.level" from {rs::editing::%player%} to 0
 					send "{@system_prefix} &a成功新增物品 %{_cousor}%"
+					save yaml {rs::editing::%player%}
 					event.setCursor(air)
 					wait a tick
 					rs_edit_shop(player,{rs::editing::%player%})
