@@ -129,7 +129,7 @@ on rightclick:
 					wait 0.5 seconds
 					rs_editor_gui( player, 1 )
 				else:
-					set {_l::*} to rs_getAllshop()
+					set {_l::*} to {-rs::LoadedShop::*}
 					loop {_l::*}:
 						set {_npcid} to yaml value "BindNPC" from loop-value
 						if {_npc}.getId() = {_npcid}:
@@ -156,7 +156,7 @@ command rpgshop [<player>] [<text>]:
 function rs_openshop(p:player,shopid:text):
 	set {_arg} to {_shopid}
 	set {_shopid} to "%{_shopid}%.yaml"
-	set {_list::*} to rs_getAllshop()
+	set {_list::*} to {-rs::LoadedShop::*}
 	if {_list::*} contains {_shopid}:
 		set {_shopname} to yaml value "ShopName" from {_shopid}
 		
@@ -477,6 +477,7 @@ on inventory click:
 on load:
 	loop rs_getAllshop():
 		load yaml "{@path}/%loop-value%" as loop-value
+		add loop-value to {-rs::LoadedShop::*}
 on unload:
 	loop rs_getAllshop():
 		unload yaml loop-value
@@ -510,7 +511,7 @@ function yaml_list_remove(ymltext:string,filename:string,index:number):
 
 
 function rs_editor_gui(p:player,page:number):
-	set {_allshop::*} to rs_getAllshop()
+	set {_allshop::*} to {-rs::LoadedShop::*}
 	open chest inventory with 6 rows named "&1RPGSHOP_Editor &3&l第 %{_page}% 頁" to {_p}
 	set {_slot} to 0
 	if size of {_allshop::*} > 0:
@@ -588,6 +589,7 @@ on inventory click:
 					send "{@system_prefix} &a請點擊NPC"
 				else if click action is right mouse button with shift:
 					delete yaml "%{_name}%"
+					remove {_name} from {-rs::LoadedShop::*}
 					send "{@system_prefix} &a成功刪除商店 %{_name}%"
 					close player's inventory
 				else if click action is right mouse button:
@@ -752,21 +754,20 @@ command rpgshopadmin [<text>] [<text>] [<text>]:
 			execute player command "sk reload %name of script%"
 		else if arg-1 = "create":
 			if arg-1 is set:
-				set {_allshop::*} to rs_getAllshop()
+				set {_allshop::*} to {-rs::LoadedShop::*}
 				if {_allshop::*} doesn't contain "%arg-2%.yaml":
 					load yaml "{@path}/%arg-2%.yaml" as "%arg-2%.yaml"
 					set skript-yaml value "ShopName" from "%arg-2%.yaml" to arg-2
 					send "{@system_prefix} &a成功創建商店 %arg-2%"
 					save yaml "%arg-2%.yaml"
-					# wait 0.5 second
-					# rs_edit_shop(player,arg-2)
+					add "%arg-2%.yaml" to {-rs::LoadedShop::*}
 				else:
 					send "{@system_prefix} &c該商店已存在" 
 			else:
 				send "{@system_prefix} &c請輸入代號"
 		else if arg-1 = "setname":
 			if arg-3 is set:
-				set {_allshop::*} to rs_getAllshop()
+				set {_allshop::*} to {-rs::LoadedShop::*}
 				if {_allshop::*} contains "%arg-2%.yaml":
 					set {_n} to arg-3
 					replace all "&" with "§" in {_n}
@@ -781,7 +782,7 @@ command rpgshopadmin [<text>] [<text>] [<text>]:
 			set {_page} to arg-2 parsed as number
 			if {_page} isn't set:
 				set {_page} to 1
-			set {_l::*} to rs_getAllshop()
+			set {_l::*} to {-rs::LoadedShop::*}
 			send "&7---------- ShopList &f[page %{_page}%&f] &7----------"
 			set {_start} to ({_page}-1) * 20
 			loop 20 times:
@@ -801,7 +802,7 @@ command rpgshopadmin [<text>] [<text>] [<text>]:
 			set {_page} to arg-2 parsed as number
 			if {_page} isn't set:
 				set {_page} to 1
-			set {_l::*} to rs_getAllshop()
+			set {_l::*} to {-rs::LoadedShop::*}
 			if {_l::*} contains {_arg}:
 				rs_edit_shop(player,{_arg})
 			else:
@@ -866,7 +867,7 @@ on TabCompleteEvent:
 		set {_arr} to Arrays.asList([{_out::*}])
 		event.setCompletions({_arr})
 	if event.getBuffer() = "/rsa edit " or "/rsa setname ":
-		set {_shop::*} to rs_getAllshop()
+		set {_shop::*} to {-rs::LoadedShop::*}
 		replace all ".yaml" with "" in {_shop::*}
 		set {_arr} to Arrays.asList([{_shop::*}])
 		event.setCompletions({_arr})
