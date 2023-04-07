@@ -59,28 +59,27 @@ options:
 
 
 import:
-	java.util.UUID
 	java.io.File
 
 #> 查看玩家point
 function PlayerPoints_look(p:player) :: number:
-	set {_uuid} to UUID.fromString(uuid of {_p})
-	return {PlayerPoints_class}.getInstance().getAPI().look({_uuid})
+	set {_uuid} to {_p}.getUniqueId()
+	return {-PlayerPoints_class}.getInstance().getAPI().look({_uuid})
 
 #> 給予玩家point
 function PlayerPoints_give(p:player,i:integer):
-	set {_uuid} to UUID.fromString(uuid of {_p})
-	{PlayerPoints_class}.getInstance().getAPI().give({_uuid},{_i})
+	set {_uuid} to {_p}.getUniqueId()
+	{-PlayerPoints_class}.getInstance().getAPI().give({_uuid},{_i})
 
 #> 設置玩家point
 function PlayerPoints_set(p:player,i:integer):
-	set {_uuid} to UUID.fromString(uuid of {_p})
-	{PlayerPoints_class}.getInstance().getAPI().set({_uuid},{_i})
+	set {_uuid} to {_p}.getUniqueId()
+	{-PlayerPoints_class}.getInstance().getAPI().set({_uuid},{_i})
 	
 #> 消耗玩家point
 function PlayerPoints_take(p:player,i:integer):
-	set {_uuid} to UUID.fromString(uuid of {_p})
-	{PlayerPoints_class}.getInstance().getAPI().take({_uuid},{_i})
+	set {_uuid} to {_p}.getUniqueId()
+	{-PlayerPoints_class}.getInstance().getAPI().take({_uuid},{_i})
 
 #> 字串中提取數字
 function StringGetNumber(t:text) :: number:
@@ -186,7 +185,7 @@ function rs_openshop(p:player,shopid:text):
 				else:
 					set {_stats} to "{@condition_false}"
 				add "{@money_aliases}&f x %{_price::money}%$ %{_stats}%" to {_pricelore::*}
-			if {PlayerPoints_class} is set:
+			if {-PlayerPoints_class} is set:
 				set {_price::points} to yaml value "items.%loop-value%.price.points" from {_shopid}
 				if {_price::points} > 0:
 					if PlayerPoints_look({_p}) >= {_price::points}:
